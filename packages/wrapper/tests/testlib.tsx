@@ -3,7 +3,7 @@ import {applyMiddleware, createStore, AnyAction} from 'redux';
 import promiseMiddleware from 'redux-promise-middleware';
 import * as React from 'react';
 import {create} from 'react-test-renderer';
-import {ReduxWrapperAppProps} from '../src';
+import {createWrapper, HYDRATE, ReduxWrapperAppProps} from '../src';
 
 export interface State {
     reduxStatus?: string;
@@ -12,6 +12,8 @@ export interface State {
 
 export const reducer = (state: State = {reduxStatus: 'init'}, action: AnyAction) => {
     switch (action.type) {
+        case HYDRATE:
+            return {...state, ...action.payload};
         case 'FOO': // sync
         case 'FOO_FULFILLED': // async
             return {reduxStatus: action.payload};
@@ -20,8 +22,9 @@ export const reducer = (state: State = {reduxStatus: 'init'}, action: AnyAction)
     }
 };
 
-export const makeStore = (initialState: State) =>
-    createStore(reducer, initialState, applyMiddleware(promiseMiddleware));
+export const makeStore = () => createStore(reducer, undefined, applyMiddleware(promiseMiddleware));
+
+export const wrapper = createWrapper(makeStore, {storeKey: 'testStoreKey'});
 
 class SyncPageBase extends React.Component<ReduxWrapperAppProps<State>> {
     public render() {
@@ -36,10 +39,10 @@ class SyncPageBase extends React.Component<ReduxWrapperAppProps<State>> {
 }
 
 export class SyncPage extends SyncPageBase {
-    public static getInitialProps({ctx}: AppContext) {
-        ctx.store.dispatch({type: 'FOO', payload: 'foo'});
+    public static getInitialProps = wrapper.getInitialPageProps(({store}) => {
+        store.dispatch({type: 'FOO', payload: 'foo'});
         return {custom: 'custom'};
-    }
+    });
 }
 
 const someAsyncAction = {
@@ -48,16 +51,16 @@ const someAsyncAction = {
 };
 
 export class AsyncPage extends SyncPageBase {
-    public static async getInitialProps({ctx}: AppContext) {
-        await ctx.store.dispatch(someAsyncAction);
+    public static getInitialProps = wrapper.getInitialPageProps(async ({store}) => {
+        await store.dispatch(someAsyncAction);
         return {custom: 'custom'};
-    }
+    });
 }
 
 export class NoStorePage extends SyncPageBase {
-    public static async getInitialProps() {
+    public static getInitialProps = wrapper.getInitialPageProps(({store}) => {
         return {custom: 'custom'};
-    }
+    });
 }
 
 /**

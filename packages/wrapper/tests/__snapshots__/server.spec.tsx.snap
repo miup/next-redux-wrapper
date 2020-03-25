@@ -2,7 +2,7 @@
 
 exports[`custom serialization custom state serialization on the server and deserialization on the client 1`] = `
 <div>
-  {"deserialized":true,"serialized":true}
+  {"reduxStatus":"init","serialized":true,"deserialized":true}
 </div>
 `;
 
